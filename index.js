@@ -4,7 +4,8 @@ const PORT = 3000;
 const fs = require("fs").promises;
 const fsCallback = require("fs");
 const path = require("path");
-const { v4: uuidv4 } = require("uuid");
+const updateMovies = require("./helpers/updateMovies");
+const checkMovie = require("./helpers/checkMovie");
 
 let movies;
 
@@ -26,54 +27,46 @@ app.get("/movies/:id", (req, res) => {
 });
 
 app.post("/movies", (req, res) => {
-  const newMovie = {
-    id: uuidv4(),
-    title: req?.body?.title,
-    year: req?.body?.year,
-    rating: req?.body?.rating || null,
-    position: req?.body?.position || null,
-    gallery: req?.body?.gallery || null,
-  };
+  const [newMovie, errors] = checkMovie(req);
 
-  const errors = [];
-
-  if (!newMovie.title || typeof newMovie.title !== "string") {
-    errors.push("title is missing or not string");
+  if (errors.length) {
+    return res
+      .status(400)
+      .json({ mesage: `Missing required fields: ${errors.join("; ")}` });
   }
 
-  if (!newMovie.year || typeof newMovie.year !== "number") {
-    errors.push("year is missing or not string");
-  }
-
-  if (newMovie.rating) {
-  }
-
-  movies.push(newMovie);
+  movies = updateMovies(movies, newMovie, null);
   res.status(201).json(newMovie);
 });
 
 app.put("/movies/:id", (req, res) => {
   const movieId = parseInt(req.params.id);
-  const movieIndex = movies.findIndex((u) => u.id === movieId);
+  const existingMovie = movies.find((movie) => movie.id == movieId);
 
-  if (movieIndex !== -1) {
-    movies[movieIndex] = {
-      id: movieId,
-      name: req.body.name,
-      email: req.body.email,
-    };
-    res.json(movies[movieIndex]);
-  } else {
-    res.status(404).json({ message: "movie not found" });
+  if (!existingMovie) {
+    return res
+      .status(400)
+      .json({ message: `No such movie with id: ${movieId}` });
   }
+
+  const [newMovie, errors] = checkMovie(req, existingMovie);
+
+  if (errors.length) {
+    return res
+      .status(400)
+      .json({ mesage: `Missing required fields: ${errors.join("; ")}` });
+  }
+
+  movies = updateMovies(movies, newMovie, true);
+  res.status(201).json(newMovie);
 });
 
 app.delete("/movies/:id", (req, res) => {
   const movieId = parseInt(req.params.id);
-  const movieIndex = movies.findIndex((u) => u.id === movieId);
+  const movie = movies.find((u) => u.id === movieId);
 
-  if (movieIndex !== -1) {
-    movies.splice(movieIndex, 1);
+  if (movie !== -1) {
+    movies = deleteMovie(movies, movie);
     res.status(204).send();
   } else {
     res.status(404).json({ message: "movie not found" });
