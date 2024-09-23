@@ -6,6 +6,7 @@ const fsCallback = require("fs");
 const path = require("path");
 const updateMovies = require("./helpers/updateMovies");
 const checkMovie = require("./helpers/checkMovie");
+const deleteMovie = require("./helpers/deleteMovie");
 
 let movies;
 
@@ -65,9 +66,9 @@ app.delete("/movies/:id", (req, res) => {
   const movieId = parseInt(req.params.id);
   const movie = movies.find((u) => u.id === movieId);
 
-  if (movie !== -1) {
+  if (movie) {
     movies = deleteMovie(movies, movie);
-    res.status(204).send();
+    res.status(201).send(movie);
   } else {
     res.status(404).json({ message: "movie not found" });
   }
